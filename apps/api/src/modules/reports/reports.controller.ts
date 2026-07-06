@@ -4,7 +4,6 @@ import {
   Query,
   UseGuards,
   Req,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ReportsService } from './reports.service';
@@ -18,7 +17,7 @@ export class ReportsController {
   @Get('sales')
   getSalesSummary(
     @Req() req: any,
-    @Query('outletId', ParseUUIDPipe) outletId: string,
+    @Query('outletId') outletId: string,
     @Query('from') from: string,
     @Query('to') to: string,
   ) {
@@ -28,7 +27,7 @@ export class ReportsController {
   @Get('top-items')
   getTopItems(
     @Req() req: any,
-    @Query('outletId', ParseUUIDPipe) outletId: string,
+    @Query('outletId') outletId: string,
     @Query('from') from: string,
     @Query('to') to: string,
   ) {
@@ -38,7 +37,7 @@ export class ReportsController {
   @Get('payment-methods')
   getPaymentMethodBreakdown(
     @Req() req: any,
-    @Query('outletId', ParseUUIDPipe) outletId: string,
+    @Query('outletId') outletId: string,
     @Query('from') from: string,
     @Query('to') to: string,
   ) {

@@ -8,7 +8,6 @@ import {
   Query,
   UseGuards,
   Req,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { OrdersService } from './orders.service';
@@ -110,7 +109,7 @@ export class OrdersController {
   @Get()
   findAll(
     @Req() req: any,
-    @Query('outletId', ParseUUIDPipe) outletId: string,
+    @Query('outletId') outletId: string,
     @Query('status') status?: string,
     @Query('tableId') tableId?: string,
     @Query('dateFrom') dateFrom?: string,
@@ -133,7 +132,7 @@ export class OrdersController {
   }
 
   @Get(':id')
-  findOne(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Req() req: any, @Param('id') id: string) {
     return this.ordersService.findOne(req.tenantId, id);
   }
 
@@ -145,7 +144,7 @@ export class OrdersController {
   @Patch(':id/status')
   updateStatus(
     @Req() req: any,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateOrderStatusDto,
   ) {
     return this.ordersService.updateStatus(req.tenantId, id, dto.status);
@@ -154,8 +153,8 @@ export class OrdersController {
   @Patch(':id/items/:itemId/status')
   updateItemStatus(
     @Req() req: any,
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('itemId', ParseUUIDPipe) itemId: string,
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
     @Body() dto: UpdateItemStatusDto,
   ) {
     return this.ordersService.updateItemStatus(
@@ -169,7 +168,7 @@ export class OrdersController {
   @Post(':id/payment')
   addPayment(
     @Req() req: any,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: AddPaymentDto,
   ) {
     return this.ordersService.addPayment(req.tenantId, id, dto);

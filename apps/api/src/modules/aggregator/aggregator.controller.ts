@@ -4,7 +4,6 @@ import {
   Get,
   Body,
   Param,
-  ParseUUIDPipe,
   HttpCode,
   HttpStatus,
   Headers,
@@ -106,7 +105,7 @@ export class AggregatorController {
 
   @Get('config/:outletId')
   async getConfig(
-    @Param('outletId', ParseUUIDPipe) outletId: string,
+    @Param('outletId') outletId: string,
     @Req() req: any,
   ) {
     const configs = this.aggregatorService.getAllConfigs(outletId);
@@ -119,7 +118,7 @@ export class AggregatorController {
 
   @Get('config/:outletId/:platform')
   async getPlatformConfig(
-    @Param('outletId', ParseUUIDPipe) outletId: string,
+    @Param('outletId') outletId: string,
     @Param('platform') platform: string,
     @Req() req: any,
   ) {

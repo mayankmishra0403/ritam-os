@@ -9,7 +9,6 @@ import {
   Query,
   UseGuards,
   Req,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { TablesService } from './tables.service';
@@ -72,7 +71,7 @@ export class TablesController {
   @Get()
   findAll(
     @Req() req: any,
-    @Query('outletId', ParseUUIDPipe) outletId: string,
+    @Query('outletId') outletId: string,
     @Query('page') page = '1',
     @Query('limit') limit = '50',
   ) {
@@ -85,7 +84,7 @@ export class TablesController {
   }
 
   @Get(':id')
-  findOne(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Req() req: any, @Param('id') id: string) {
     return this.tablesService.findOne(req.tenantId, id);
   }
 
@@ -97,7 +96,7 @@ export class TablesController {
   @Patch(':id')
   update(
     @Req() req: any,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateTableDto,
   ) {
     return this.tablesService.update(req.tenantId, id, dto);
@@ -106,14 +105,14 @@ export class TablesController {
   @Patch(':id/status')
   updateStatus(
     @Req() req: any,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateStatusDto,
   ) {
     return this.tablesService.updateStatus(req.tenantId, id, dto.status);
   }
 
   @Delete(':id')
-  remove(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
+  remove(@Req() req: any, @Param('id') id: string) {
     return this.tablesService.softDelete(req.tenantId, id);
   }
 }

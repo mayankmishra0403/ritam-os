@@ -9,7 +9,6 @@ import {
   Query,
   UseGuards,
   Req,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { StaffService } from './staff.service';
@@ -92,14 +91,14 @@ export class StaffController {
   @Patch(':id')
   update(
     @Req() req: any,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateStaffDto,
   ) {
     return this.staffService.update(req.tenantId, id, dto);
   }
 
   @Delete(':id')
-  remove(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
+  remove(@Req() req: any, @Param('id') id: string) {
     return this.staffService.softDelete(req.tenantId, id);
   }
 }

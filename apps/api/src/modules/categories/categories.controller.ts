@@ -9,7 +9,6 @@ import {
   Query,
   UseGuards,
   Req,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { CategoriesService } from './categories.service';
@@ -64,7 +63,7 @@ export class CategoriesController {
   @Get()
   findAll(
     @Req() req: any,
-    @Query('outletId', ParseUUIDPipe) outletId: string,
+    @Query('outletId') outletId: string,
     @Query('page') page = '1',
     @Query('limit') limit = '50',
   ) {
@@ -84,14 +83,14 @@ export class CategoriesController {
   @Patch(':id')
   update(
     @Req() req: any,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateCategoryDto,
   ) {
     return this.categoriesService.update(req.tenantId, id, dto);
   }
 
   @Delete(':id')
-  remove(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
+  remove(@Req() req: any, @Param('id') id: string) {
     return this.categoriesService.softDelete(req.tenantId, id);
   }
 }

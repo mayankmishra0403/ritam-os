@@ -7,7 +7,6 @@ import {
   Param,
   UseGuards,
   Req,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { OutletsService } from './outlets.service';
@@ -109,7 +108,7 @@ export class OutletsController {
   @Patch(':id')
   update(
     @Req() req: any,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateOutletDto,
   ) {
     return this.outletsService.update(req.tenantId, id, dto);
@@ -118,7 +117,7 @@ export class OutletsController {
   @Patch(':id/settings')
   updateSettings(
     @Req() req: any,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateSettingsDto,
   ) {
     return this.outletsService.updateSettings(req.tenantId, id, dto.settings);

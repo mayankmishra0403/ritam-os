@@ -9,7 +9,6 @@ import {
   Query,
   UseGuards,
   Req,
-  ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ProductsService } from './products.service';
@@ -122,7 +121,7 @@ export class ProductsController {
   @Get()
   findAll(
     @Req() req: any,
-    @Query('outletId', ParseUUIDPipe) outletId: string,
+    @Query('outletId') outletId: string,
     @Query('categoryId') categoryId?: string,
     @Query('search') search?: string,
     @Query('isActive') isActive?: string,
@@ -143,7 +142,7 @@ export class ProductsController {
   }
 
   @Get(':id')
-  findOne(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Req() req: any, @Param('id') id: string) {
     return this.productsService.findOne(req.tenantId, id);
   }
 
@@ -155,19 +154,19 @@ export class ProductsController {
   @Patch(':id')
   update(
     @Req() req: any,
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() dto: UpdateProductDto,
   ) {
     return this.productsService.update(req.tenantId, id, dto);
   }
 
   @Patch(':id/toggle')
-  toggleActive(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
+  toggleActive(@Req() req: any, @Param('id') id: string) {
     return this.productsService.toggleActive(req.tenantId, id);
   }
 
   @Delete(':id')
-  remove(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
+  remove(@Req() req: any, @Param('id') id: string) {
     return this.productsService.softDelete(req.tenantId, id);
   }
 }
