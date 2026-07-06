@@ -96,6 +96,7 @@ model Outlet {
   tenant       Tenant       @relation(fields: [tenantId], references: [id])
   categories   Category[]
   tables       Table[]
+  products     Product[]
   orders       Order[]
 
   @@unique([tenantId, name])

@@ -6,10 +6,15 @@ import OrdersPage from './pages/OrdersPage';
 import MenuPage from './pages/MenuPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
+import KdsPage from './pages/KdsPage';
 
 export default function App() {
   return (
     <Routes>
+      {/* KDS is full-screen (outside PosLayout) */}
+      <Route path="/kds" element={<KdsPage />} />
+
+      {/* POS routes nested inside sidebar layout */}
       <Route path="/" element={<PosLayout />}>
         <Route index element={<TableView />} />
         <Route path="billing/:tableId?" element={<BillingPage />} />

@@ -11,6 +11,8 @@ import {
   Clock,
   Store,
   User,
+  ChefHat,
+  ExternalLink,
 } from 'lucide-react';
 
 const navItems = [
@@ -19,6 +21,7 @@ const navItems = [
   { to: '/menu', icon: UtensilsCrossed, label: 'Menu' },
   { to: '/reports', icon: BarChart3, label: 'Reports' },
   { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/kds', icon: ChefHat, label: 'Kitchen Display', external: true },
 ];
 
 function ClockDisplay() {
@@ -81,19 +84,33 @@ export default function PosLayout() {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `nav-item ${isActive ? 'active' : ''}`
-              }
-            >
-              <item.icon size={20} />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+          {navItems.map((item) =>
+            item.external ? (
+              <a
+                key={item.to}
+                href={item.to}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="nav-item"
+              >
+                <item.icon size={20} />
+                <span>{item.label}</span>
+                <ExternalLink size={14} className="ml-auto opacity-50" />
+              </a>
+            ) : (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  `nav-item ${isActive ? 'active' : ''}`
+                }
+              >
+                <item.icon size={20} />
+                <span>{item.label}</span>
+              </NavLink>
+            ),
+          )}
         </nav>
 
         {/* Bottom */}
