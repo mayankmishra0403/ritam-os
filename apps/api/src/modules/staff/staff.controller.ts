@@ -12,7 +12,6 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { TenantGuard } from '../../common/guards/tenant.guard';
 import { StaffService } from './staff.service';
 import {
   IsString,
@@ -72,7 +71,7 @@ class UpdateStaffDto {
   isActive?: boolean;
 }
 
-@UseGuards(AuthGuard('jwt'), TenantGuard)
+@UseGuards(AuthGuard('jwt'))
 @Controller('staff')
 export class StaffController {
   constructor(private readonly staffService: StaffService) {}

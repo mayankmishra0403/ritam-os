@@ -7,11 +7,10 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { TenantGuard } from '../../common/guards/tenant.guard';
 import { ReportsService } from './reports.service';
 import { IsString, IsOptional } from 'class-validator';
 
-@UseGuards(AuthGuard('jwt'), TenantGuard)
+@UseGuards(AuthGuard('jwt'))
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}

@@ -11,7 +11,6 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { TenantGuard } from '../../common/guards/tenant.guard';
 import { OrdersService } from './orders.service';
 import {
   IsString,
@@ -103,7 +102,7 @@ class AddPaymentDto {
   gatewayStatus?: string;
 }
 
-@UseGuards(AuthGuard('jwt'), TenantGuard)
+@UseGuards(AuthGuard('jwt'))
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}

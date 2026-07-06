@@ -10,7 +10,6 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { TenantGuard } from '../../common/guards/tenant.guard';
 import { OutletsService } from './outlets.service';
 import {
   IsString,
@@ -92,7 +91,7 @@ class UpdateSettingsDto {
   settings!: Record<string, any>;
 }
 
-@UseGuards(AuthGuard('jwt'), TenantGuard)
+@UseGuards(AuthGuard('jwt'))
 @Controller('outlets')
 export class OutletsController {
   constructor(private readonly outletsService: OutletsService) {}

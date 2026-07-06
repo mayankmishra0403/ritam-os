@@ -12,7 +12,6 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { TenantGuard } from '../../common/guards/tenant.guard';
 import { ProductsService } from './products.service';
 import {
   IsString,
@@ -115,7 +114,7 @@ class UpdateProductDto {
   modifierIds?: string[];
 }
 
-@UseGuards(AuthGuard('jwt'), TenantGuard)
+@UseGuards(AuthGuard('jwt'))
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}

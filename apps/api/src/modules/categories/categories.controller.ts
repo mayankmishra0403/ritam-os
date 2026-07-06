@@ -12,7 +12,6 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { TenantGuard } from '../../common/guards/tenant.guard';
 import { CategoriesService } from './categories.service';
 import {
   IsString,
@@ -57,7 +56,7 @@ class UpdateCategoryDto {
   sortOrder?: number;
 }
 
-@UseGuards(AuthGuard('jwt'), TenantGuard)
+@UseGuards(AuthGuard('jwt'))
 @Controller('categories')
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
