@@ -1,35 +1,36 @@
-FROM node:22-alpine AS builder
-WORKDIR /app
+FROM node:22-alpine AS build
+WORKDIR /build
 
-RUN npm install -g pnpm@9
+# Copy package files
+COPY apps/api/package.json ./
+COPY apps/api/tsconfig.json ./
 
-# Copy everything
-COPY . .
+# Install dependencies
+RUN npm install
 
-# Install all workspace dependencies
-RUN pnpm install --no-frozen-lockfile
+# Copy source
+COPY apps/api/nest-cli.json ./
+COPY apps/api/tsconfig.build.json ./
+COPY apps/api/src ./src
 
-# Install prisma v6 globally (v7 has breaking schema changes)
-RUN npm install -g prisma@6 @prisma/client@6
+# Copy prisma schema from monorepo
+COPY packages/database/prisma ./prisma
 
-# Generate Prisma client
-WORKDIR /app/packages/database
-RUN prisma generate
+# Install prisma and generate client
+RUN npm install prisma@6 @prisma/client@6
+RUN npx prisma generate
 
-# Build API
-WORKDIR /app/apps/api
+# Build with NestJS CLI
 RUN npx @nestjs/cli build
 
-# ── Production stage ──
-FROM node:22-alpine AS runner
+# ── Production image ──
+FROM node:22-alpine
 WORKDIR /app
 
-RUN npm install -g pnpm@9
-
-# Copy built artifacts + node_modules
-COPY --from=builder /app/apps/api/dist ./dist
-COPY --from=builder /app/apps/api/node_modules ./node_modules
-COPY --from=builder /app/apps/api/package.json ./
+# Copy built artifacts
+COPY --from=build /build/dist ./dist
+COPY --from=build /build/node_modules ./node_modules
+COPY --from=build /build/package.json ./
 
 EXPOSE 4000
 
