@@ -20,9 +20,17 @@ import {
   MapPin,
   Shield,
   TestTube,
+  Check,
+  Star,
+  Wifi,
+  Bluetooth,
+  Usb,
+  Cable,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { mockStaff } from '../data/mockData';
+import usePrinterStore from '../store/printerStore';
+import PrintDialog from '../components/pos/PrintDialog';
 
 // ─── Settings Section Card ───
 function SectionCard({ icon: Icon, title, defaultOpen = false, children }) {
@@ -61,6 +69,28 @@ function SectionCard({ icon: Icon, title, defaultOpen = false, children }) {
       </AnimatePresence>
     </div>
   );
+}
+
+// ─── Connection icon helper ───
+function ConnectionIcon({ type, className = '' }) {
+  const props = { size: 16, className };
+  switch (type) {
+    case 'usb': return <Usb {...props} />;
+    case 'bluetooth': return <Bluetooth {...props} />;
+    case 'network': return <Wifi {...props} />;
+    case 'serial': return <Cable {...props} />;
+    default: return <Wifi {...props} />;
+  }
+}
+
+function ConnectionLabel({ type }) {
+  const labels = {
+    usb: 'USB',
+    bluetooth: 'Bluetooth',
+    network: 'Network (IP)',
+    serial: 'Serial',
+  };
+  return labels[type] || type;
 }
 
 // ─── Add Staff Modal ───
@@ -169,11 +199,97 @@ function AddStaffModal({ onClose }) {
   );
 }
 
+// ─── Printer Card ───
+function PrinterCard({ printer, onEdit, onDelete, onSetDefault, onTest }) {
+  return (
+    <div className="flex items-center justify-between p-3 rounded-xl border border-[#F0E6DC] hover:border-[#FF6B35]/30 transition-all">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+          printer.isDefault
+            ? 'bg-[#FF6B35]/15 text-[#FF6B35]'
+            : printer.isActive
+            ? 'bg-[#06D6A0]/10 text-[#06D6A0]'
+            : 'bg-gray-100 text-gray-400'
+        }`}>
+          <ConnectionIcon type={printer.connection} />
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-[#1A1A2E] truncate">{printer.name}</p>
+            {printer.isDefault && (
+              <span className="px-2 py-0.5 rounded-full bg-[#FF6B35]/10 text-[10px] font-medium text-[#FF6B35] shrink-0">
+                Default
+              </span>
+            )}
+            {!printer.isActive && (
+              <span className="px-2 py-0.5 rounded-full bg-gray-100 text-[10px] font-medium text-gray-500 shrink-0">
+                Offline
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-[#6B7280] mt-0.5">
+            <ConnectionLabel type={printer.connection} />
+            {printer.ip && <span>· {printer.ip}:{printer.port}</span>}
+            {printer.bluetoothId && <span>· BLE</span>}
+            {printer.paperSize && <span>· {printer.paperSize}</span>}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-1 ml-2 shrink-0">
+        {!printer.isDefault && (
+          <button
+            onClick={() => onSetDefault(printer.id)}
+            className="p-1.5 rounded-lg hover:bg-[#FFF8F0] text-[#6B7280] hover:text-[#FF6B35] transition-colors"
+            title="Set as default"
+          >
+            <Star size={14} />
+          </button>
+        )}
+        <button
+          onClick={() => onTest(printer)}
+          className="p-1.5 rounded-lg hover:bg-[#FFF8F0] text-[#6B7280] hover:text-[#06D6A0] transition-colors"
+          title="Test print"
+        >
+          <TestTube size={14} />
+        </button>
+        <button
+          onClick={() => onEdit(printer)}
+          className="p-1.5 rounded-lg hover:bg-[#FFF8F0] text-[#6B7280] hover:text-[#E85D04] transition-colors"
+          title="Edit"
+        >
+          <Edit3 size={14} />
+        </button>
+        <button
+          onClick={() => onDelete(printer.id)}
+          className="p-1.5 rounded-lg hover:bg-red-50 text-[#6B7280] hover:text-red-500 transition-colors"
+          title="Delete"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main SettingsPage ───
 export default function SettingsPage() {
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [swiggyEnabled, setSwiggyEnabled] = useState(false);
   const [zomatoEnabled, setZomatoEnabled] = useState(false);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [printDialogMode, setPrintDialogMode] = useState('add');
+  const [editingPrinter, setEditingPrinter] = useState(null);
+  const [testingPrinterId, setTestingPrinterId] = useState(null);
+
+  // Printer store
+  const {
+    printers,
+    addPrinter,
+    updatePrinter,
+    removePrinter,
+    setDefaultPrinter,
+    togglePrinterActive,
+  } = usePrinterStore();
 
   // Outlet info state
   const [outletInfo, setOutletInfo] = useState({
@@ -191,11 +307,73 @@ export default function SettingsPage() {
     serviceCharge: 0,
   });
 
-  // Printer state
-  const [printers] = useState([
-    { id: 'pr-1', name: 'Kitchen Printer', ip: '192.168.1.100', port: '9100', isDefault: true },
-    { id: 'pr-2', name: 'Counter Printer', ip: '192.168.1.101', port: '9100', isDefault: false },
-  ]);
+  // ── Printer Actions ──
+  const handleAddPrinter = () => {
+    setPrintDialogMode('add');
+    setEditingPrinter(null);
+    setShowPrintDialog(true);
+  };
+
+  const handleEditPrinter = (printer) => {
+    setPrintDialogMode('edit');
+    setEditingPrinter(printer);
+    setShowPrintDialog(true);
+  };
+
+  const handleDeletePrinter = (id) => {
+    const printer = printers.find((p) => p.id === id);
+    if (printer?.isDefault) {
+      toast.error('Cannot delete the default printer. Set another as default first.');
+      return;
+    }
+    removePrinter(id);
+    toast.success('Printer deleted');
+  };
+
+  const handleSetDefault = (id) => {
+    setDefaultPrinter(id);
+    toast.success('Default printer updated');
+  };
+
+  const handleTestPrint = async (printer) => {
+    setTestingPrinterId(printer.id);
+    try {
+      const { PrintEngine } = await import('../services/printEngine');
+      const engine = new PrintEngine();
+      engine.generateTestReceipt();
+      const bytes = engine.getBuffer();
+
+      // Simulate sending to printer
+      await new Promise((r) => setTimeout(r, 1000));
+      
+      // Download as bin for demo
+      const blob = new Blob([bytes], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `test-${printer.name.replace(/\s+/g, '-')}-${Date.now()}.bin`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.success(`Test page sent to ${printer.name}`);
+    } catch (error) {
+      toast.error(`Test failed: ${error.message}`);
+    } finally {
+      setTestingPrinterId(null);
+    }
+  };
+
+  const handleSavePrinter = (printerData) => {
+    if (printDialogMode === 'edit' && editingPrinter) {
+      updatePrinter(editingPrinter.id, printerData);
+      toast.success('Printer updated');
+    } else {
+      addPrinter(printerData);
+      toast.success('Printer added');
+    }
+    setShowPrintDialog(false);
+    setEditingPrinter(null);
+  };
 
   return (
     <div className="h-full flex flex-col p-6 overflow-y-auto">
@@ -307,46 +485,51 @@ export default function SettingsPage() {
           </div>
         </SectionCard>
 
-        {/* ── Printer Config ── */}
-        <SectionCard icon={Printer} title="Printer Configuration">
+        {/* ── Printer Configuration (Enhanced) ── */}
+        <SectionCard icon={Printer} title="Printer Configuration" defaultOpen={true}>
           <div className="space-y-3">
-            {printers.map((printer) => (
-              <div
-                key={printer.id}
-                className="flex items-center justify-between p-3 rounded-xl border border-[#F0E6DC]"
-              >
-                <div className="flex items-center gap-3">
-                  <Printer size={20} className="text-[#6B7280]" />
-                  <div>
-                    <p className="text-sm font-medium text-[#1A1A2E]">{printer.name}</p>
-                    <p className="text-xs text-[#6B7280]">
-                      {printer.ip}:{printer.port}
-                    </p>
-                  </div>
-                  {printer.isDefault && (
-                    <span className="px-2 py-0.5 rounded-full bg-[#FF6B35]/10 text-[10px] font-medium text-[#FF6B35]">
-                      Default
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => toast.success('Test page printed')}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#F0E6DC] text-xs font-medium hover:bg-[#FFF8F0] transition-colors"
-                  >
-                    <TestTube size={14} />
-                    Test
-                  </button>
-                  <button className="p-1.5 rounded-lg hover:bg-[#FFF8F0] text-[#6B7280]">
-                    <Edit3 size={14} />
-                  </button>
-                </div>
+            {/* Printer list */}
+            {printers.length === 0 ? (
+              <div className="text-center py-8 text-[#6B7280]">
+                <Printer size={40} className="mx-auto mb-2 opacity-30" />
+                <p className="font-medium">No printers configured</p>
+                <p className="text-sm mt-1">Add a printer to start printing receipts</p>
               </div>
-            ))}
-            <button className="flex items-center gap-2 text-sm text-[#FF6B35] font-medium hover:text-[#E85D04] transition-colors">
+            ) : (
+              <div className="space-y-2">
+                {printers.map((printer) => (
+                  <PrinterCard
+                    key={printer.id}
+                    printer={printer}
+                    onEdit={handleEditPrinter}
+                    onDelete={handleDeletePrinter}
+                    onSetDefault={handleSetDefault}
+                    onTest={handleTestPrint}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Add printer button */}
+            <button
+              onClick={handleAddPrinter}
+              className="flex items-center gap-2 text-sm text-[#FF6B35] font-medium hover:text-[#E85D04] transition-colors py-2"
+            >
               <Plus size={16} />
               Add Printer
             </button>
+
+            {/* Printer tips */}
+            <div className="mt-3 p-3 rounded-xl bg-[#FFF8F0] border border-[#F0E6DC]">
+              <p className="text-xs font-medium text-[#6B7280] mb-1">Printer Setup Tips:</p>
+              <ul className="text-xs text-[#6B7280] space-y-1 list-disc list-inside">
+                <li>Use <strong>Network (IP)</strong> for Ethernet-connected thermal printers on port 9100</li>
+                <li>Use <strong>WebUSB</strong> for USB printers (Chrome/Edge recommended)</li>
+                <li>Use <strong>Bluetooth</strong> for wireless BLE thermal printers</li>
+                <li>Set a <strong>default printer</strong> for automatic receipt printing</li>
+                <li>Run a <strong>Test Print</strong> to verify connection before going live</li>
+              </ul>
+            </div>
           </div>
         </SectionCard>
 
@@ -484,6 +667,20 @@ export default function SettingsPage() {
       {/* Add Staff Modal */}
       <AnimatePresence>
         {showAddStaff && <AddStaffModal onClose={() => setShowAddStaff(false)} />}
+      </AnimatePresence>
+
+      {/* Print Dialog Modal */}
+      <AnimatePresence>
+        {showPrintDialog && (
+          <PrintDialog
+            printer={editingPrinter}
+            mode={printDialogMode}
+            onClose={() => {
+              setShowPrintDialog(false);
+              setEditingPrinter(null);
+            }}
+          />
+        )}
       </AnimatePresence>
     </div>
   );

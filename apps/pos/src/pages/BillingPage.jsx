@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -23,13 +23,18 @@ import {
   ArrowLeft,
   User,
   UtensilsCrossed,
+  Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { mockCategories, mockProducts, mockModifiers, mockTables } from '../data/mockData';
 import usePosStore from '../store/posStore';
+import usePrinterStore from '../store/printerStore';
+import { generateInvoice, generateKOT } from '../services/invoiceGenerator';
+import { PrintEngine } from '../services/printEngine';
+import InvoicePreview from '../components/pos/InvoicePreview';
 
 // ─── Payment Modal ───
-function PaymentModal({ onClose }) {
+function PaymentModal({ onClose, onPaymentComplete }) {
   const {
     getGrandTotal,
     getSubtotal,
@@ -46,6 +51,9 @@ function PaymentModal({ onClose }) {
     setUpiPaymentConfirmed,
     clearCart,
     setSelectedTable,
+    discount,
+    discountType,
+    notes,
   } = usePosStore();
 
   const navigate = useNavigate();
@@ -56,6 +64,31 @@ function PaymentModal({ onClose }) {
   const change = Math.max(0, cashTendered - grandTotal);
 
   const handleComplete = () => {
+    // Build order data for invoice
+    const orderData = {
+      orderId: Math.floor(Math.random() * 9999) + 1,
+      customerName,
+      tableNumber: selectedTable?.tableNumber,
+      waiterName: 'Rajesh',
+      items: cart.map((item) => ({
+        name: item.name,
+        nameHi: item.nameHi || '',
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+        modifiers: item.modifiers || [],
+      })),
+      subtotal,
+      discount: discountAmt,
+      grandTotal,
+      paymentMethod: paymentMethod || 'CASH',
+      paymentRef: paymentMethod === 'UPI' ? `UPI-${Date.now().toString(36).toUpperCase()}` : '',
+      changeDue: change,
+      notes,
+    };
+
+    // Callback to parent to show invoice
+    onPaymentComplete?.(orderData);
+    
     toast.success(`Order completed for Table ${selectedTable?.tableNumber || 'Takeaway'}`);
     clearCart();
     setSelectedTable(null);
@@ -306,10 +339,16 @@ export default function BillingPage() {
     setSelectedCategory,
   } = usePosStore();
 
+  const { getRestaurantInfo } = usePrinterStore();
+
   const [showDiscountInput, setShowDiscountInput] = useState(false);
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [showModifierModal, setShowModifierModal] = useState(null);
   const [selectedModifiers, setSelectedModifiers] = useState([]);
+  const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  const [invoiceData, setInvoiceData] = useState(null);
+  const [kotLoading, setKotLoading] = useState(false);
+  const [billLoading, setBillLoading] = useState(false);
 
   // Set table from URL param if exists
   useEffect(() => {
@@ -332,6 +371,101 @@ export default function BillingPage() {
     return discount;
   };
   const discountAmount = getDiscountAmount();
+
+  // Build current order data for invoice generation
+  const buildOrderData = useCallback(() => ({
+    orderId: Math.floor(Math.random() * 9999) + 1,
+    customerName,
+    tableNumber: selectedTable?.tableNumber,
+    waiterName: 'Rajesh',
+    items: cart.map((item) => ({
+      name: item.name,
+      nameHi: item.nameHi || '',
+      unitPrice: item.unitPrice,
+      quantity: item.quantity,
+      modifiers: item.modifiers || [],
+    })),
+    subtotal,
+    discount: discountAmount,
+    grandTotal,
+    paymentMethod: 'N/A',
+    paymentRef: '',
+    changeDue: 0,
+    notes,
+  }), [cart, customerName, selectedTable, subtotal, discountAmount, grandTotal, notes]);
+
+  // Handle payment complete — generate invoice and show preview
+  const handlePaymentComplete = useCallback((orderData) => {
+    const restaurantInfo = getRestaurantInfo();
+    const invoice = generateInvoice(orderData, restaurantInfo);
+    setInvoiceData(invoice);
+    // Delay showing invoice preview a bit
+    setTimeout(() => {
+      setShowInvoicePreview(true);
+    }, 500);
+  }, [getRestaurantInfo]);
+
+  // Handle Print KOT
+  const handlePrintKOT = useCallback(async () => {
+    if (cart.length === 0) {
+      toast.error('Cart is empty. Add items first.');
+      return;
+    }
+
+    setKotLoading(true);
+    try {
+      const orderData = buildOrderData();
+      const kotData = generateKOT(orderData);
+      
+      // Generate ESC/POS bytes using PrintEngine
+      const engine = new PrintEngine();
+      engine.generateKOT(kotData);
+      const bytes = engine.getBuffer();
+
+      // In production, send to actual printer via WebUSB/Bluetooth
+      // For MVP demo, download the binary
+      const blob = new Blob([bytes], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `KOT-${kotData.kotNumber}.bin`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success(`KOT #${kotData.kotNumber} sent to kitchen!`, {
+        duration: 4000,
+      });
+    } catch (error) {
+      console.error('KOT printing failed:', error);
+      toast.error('Failed to send KOT to printer');
+    } finally {
+      setKotLoading(false);
+    }
+  }, [cart, buildOrderData]);
+
+  // Handle Generate Bill (show invoice preview)
+  const handleGenerateBill = useCallback(() => {
+    if (cart.length === 0) {
+      toast.error('Cart is empty. Add items first.');
+      return;
+    }
+
+    setBillLoading(true);
+    try {
+      const orderData = buildOrderData();
+      const restaurantInfo = getRestaurantInfo();
+      const invoice = generateInvoice(orderData, restaurantInfo);
+      setInvoiceData(invoice);
+      setShowInvoicePreview(true);
+    } catch (error) {
+      console.error('Bill generation failed:', error);
+      toast.error('Failed to generate bill');
+    } finally {
+      setBillLoading(false);
+    }
+  }, [buildOrderData, getRestaurantInfo]);
 
   // Filter products
   const filteredProducts = useMemo(() => {
@@ -688,16 +822,28 @@ export default function BillingPage() {
           <div className="px-4 py-3 border-t border-[#F0E6DC] space-y-2">
             <div className="flex gap-2">
               <button
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#F0E6DC] text-sm font-medium text-[#6B7280] hover:bg-[#FFF8F0] transition-colors"
+                onClick={handlePrintKOT}
+                disabled={kotLoading || cart.length === 0}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#F0E6DC] text-sm font-medium text-[#6B7280] hover:bg-[#FFF8F0] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                <ScrollText size={16} />
-                Print KOT
+                {kotLoading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <ScrollText size={16} />
+                )}
+                {kotLoading ? 'Sending...' : 'Print KOT'}
               </button>
               <button
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#F0E6DC] text-sm font-medium text-[#6B7280] hover:bg-[#FFF8F0] transition-colors"
+                onClick={handleGenerateBill}
+                disabled={billLoading || cart.length === 0}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#F0E6DC] text-sm font-medium text-[#6B7280] hover:bg-[#FFF8F0] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                <FileText size={16} />
-                Generate Bill
+                {billLoading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <FileText size={16} />
+                )}
+                {billLoading ? 'Generating...' : 'Generate Bill'}
               </button>
             </div>
             <button
@@ -708,14 +854,55 @@ export default function BillingPage() {
               <IndianRupee size={20} />
               Collect Payment — ₹{grandTotal.toLocaleString('en-IN')}
             </button>
+
+            {/* Quick Print Shortcuts */}
+            {cart.length > 0 && (
+              <div className="flex gap-2 mt-1">
+                <button
+                  onClick={handlePrintKOT}
+                  disabled={kotLoading}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-[#FFF8F0] text-xs text-[#6B7280] hover:bg-[#FF6B35]/10 hover:text-[#FF6B35] transition-colors"
+                >
+                  <Printer size={14} />
+                  Quick KOT
+                </button>
+                <button
+                  onClick={() => {
+                    setPaymentModalOpen(true);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-[#FFF8F0] text-xs text-[#6B7280] hover:bg-[#06D6A0]/10 hover:text-[#06D6A0] transition-colors"
+                >
+                  <IndianRupee size={14} />
+                  Pay & Print
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
+      {/* ── Modals ── */}
+
       {/* Payment Modal */}
       <AnimatePresence>
         {paymentModalOpen && (
-          <PaymentModal onClose={() => setPaymentModalOpen(false)} />
+          <PaymentModal
+            onClose={() => setPaymentModalOpen(false)}
+            onPaymentComplete={handlePaymentComplete}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Invoice Preview Modal */}
+      <AnimatePresence>
+        {showInvoicePreview && invoiceData && (
+          <InvoicePreview
+            invoice={invoiceData}
+            onClose={() => {
+              setShowInvoicePreview(false);
+              setInvoiceData(null);
+            }}
+          />
         )}
       </AnimatePresence>
 
