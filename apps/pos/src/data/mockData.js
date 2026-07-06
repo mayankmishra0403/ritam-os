@@ -120,6 +120,65 @@ export const mockOrders = [
   },
 ];
 
+export const mockAggregatorOrders = [
+  {
+    id: 'agg-order-1',
+    platform: 'SWIGGY',
+    platformOrderId: 'SW123456',
+    customerName: 'Rahul Sharma',
+    customerPhone: '9876543210',
+    items: [
+      { name: 'Butter Chicken', quantity: 2, price: 449 },
+      { name: 'Garlic Naan', quantity: 4, price: 69 },
+      { name: 'Dal Makhani', quantity: 1, price: 299 },
+    ],
+    total: 1174,
+    status: 'PENDING',
+    paymentMethod: 'ONLINE',
+    address: '123, MG Road, Bangalore',
+    orderTime: '19:30',
+    timeElapsed: '5 min ago',
+    deliveryPartner: null,
+  },
+  {
+    id: 'agg-order-2',
+    platform: 'ZOMATO',
+    platformOrderId: 'ZM789012',
+    customerName: 'Priya Patel',
+    customerPhone: '9988776655',
+    items: [
+      { name: 'Chicken Biryani', quantity: 1, price: 399 },
+      { name: 'Raita', quantity: 1, price: 49 },
+    ],
+    total: 448,
+    status: 'PENDING',
+    paymentMethod: 'COD',
+    address: '456, JP Nagar, Bangalore',
+    orderTime: '20:15',
+    timeElapsed: '2 min ago',
+    deliveryPartner: null,
+  },
+  {
+    id: 'agg-order-3',
+    platform: 'SWIGGY',
+    platformOrderId: 'SW123789',
+    customerName: 'Amit Kumar',
+    customerPhone: '8765432109',
+    items: [
+      { name: 'Paneer Tikka', quantity: 1, price: 299 },
+      { name: 'Butter Roti', quantity: 3, price: 49 },
+      { name: 'Mixed Veg Curry', quantity: 1, price: 279 },
+    ],
+    total: 627,
+    status: 'PREPARING',
+    paymentMethod: 'ONLINE',
+    address: '789, Indiranagar, Bangalore',
+    orderTime: '19:45',
+    timeElapsed: '15 min ago',
+    deliveryPartner: 'Zomato Partner - Ramesh',
+  },
+];
+
 export const mockKdsOrders = [
   {
     id: 'kds-1',

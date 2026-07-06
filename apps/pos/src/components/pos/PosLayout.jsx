@@ -14,6 +14,7 @@ import {
   ChefHat,
   ExternalLink,
 } from 'lucide-react';
+import AggregatorOrdersPanel from './AggregatorOrdersPanel';
 
 const navItems = [
   { to: '/', icon: Grid3x3, label: 'Table View', end: true },
@@ -112,6 +113,9 @@ export default function PosLayout() {
             ),
           )}
         </nav>
+
+        {/* Aggregator Orders Panel */}
+        <AggregatorOrdersPanel />
 
         {/* Bottom */}
         <div className="px-4 py-4 border-t border-white/10">
