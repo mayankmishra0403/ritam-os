@@ -9,9 +9,12 @@ COPY . .
 # Install all workspace dependencies
 RUN pnpm install --no-frozen-lockfile
 
+# Install prisma v6 globally (v7 has breaking schema changes)
+RUN npm install -g prisma@6 @prisma/client@6
+
 # Generate Prisma client
 WORKDIR /app/packages/database
-RUN npx prisma generate
+RUN prisma generate
 
 # Build API
 WORKDIR /app/apps/api
