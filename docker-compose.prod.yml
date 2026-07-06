@@ -39,6 +39,8 @@ services:
       dockerfile: apps/api/Dockerfile
     ports:
       - "${API_PORT:-4000}:4000"
+    mem_limit: 512m
+    mem_reservation: 256m
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://${DB_USER:-ritam}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-ritam_prod}
