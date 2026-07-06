@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { GatewayModule } from './common/gateways/gateway.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -13,7 +13,7 @@ import { OutletsModule } from './modules/outlets/outlets.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { AggregatorModule } from './modules/aggregator/aggregator.module';
 import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
-import { TenantGuard } from './common/guards/tenant.guard';
+import { TenantInterceptor } from './common/interceptors/tenant.interceptor';
 
 @Module({
   imports: [
@@ -33,7 +33,7 @@ import { TenantGuard } from './common/guards/tenant.guard';
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    { provide: APP_GUARD, useClass: TenantGuard },
+    { provide: APP_INTERCEPTOR, useClass: TenantInterceptor },
   ],
 })
 export class AppModule {}
