@@ -1,0 +1,23 @@
+{
+  "name": "ritam-os",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json}\"",
+    "db:generate": "pnpm --filter @ritam/database generate",
+    "db:push": "pnpm --filter @ritam/database push",
+    "db:studio": "pnpm --filter @ritam/database studio",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "prettier": "^3.4.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "pnpm@9.1.0"
+}
