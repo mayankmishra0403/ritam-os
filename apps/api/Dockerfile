@@ -18,9 +18,12 @@ RUN pnpm install --frozen-lockfile
 COPY apps/api/tsconfig.json ./apps/api/
 COPY apps/api/src ./apps/api/src
 
+# Copy Prisma schema from database package
+COPY packages/database/prisma ./packages/database/prisma
+
 # Generate Prisma client and build
 WORKDIR /app/apps/api
-RUN npx prisma generate
+RUN npx prisma generate --schema=../packages/database/prisma/schema.prisma
 RUN pnpm build
 
 # ── Production stage ──
