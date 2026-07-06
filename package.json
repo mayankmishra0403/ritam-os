@@ -10,8 +10,13 @@
     "db:generate": "pnpm --filter @ritam/database generate",
     "db:push": "pnpm --filter @ritam/database push",
     "db:studio": "pnpm --filter @ritam/database studio",
+    "db:migrate:prod": "npx prisma migrate deploy",
     "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "deploy:api": "docker compose -f docker-compose.prod.yml up -d --build",
+    "deploy:setup": "bash scripts/setup-droplet.sh",
+    "deploy:migrate": "bash scripts/migrate-prod.sh",
+    "deploy:logs": "docker compose -f docker-compose.prod.yml logs -f"
   },
   "devDependencies": {
     "turbo": "^2.3.0",

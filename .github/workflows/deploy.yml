@@ -1,0 +1,173 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      services:
+        description: 'Services to deploy (api, web, pos, qr, all)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - api
+          - web
+          - pos
+          - qr
+
+env:
+  PNPM_VERSION: 9
+
+jobs:
+  # ── Quality Gate ──
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ritam_test
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: cp .env.example .env
+      - run: pnpm --filter @ritam/database generate
+      - name: Run Prisma migration (CI)
+        working-directory: packages/database
+        run: npx prisma db push
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ritam_test
+
+  # ── Deploy API to Digital Ocean ──
+  deploy-api:
+    needs: quality
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || github.event.inputs.services == 'all' || github.event.inputs.services == 'api' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Digital Ocean Droplet
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          script: |
+            set -e
+
+            echo "→ Pulling latest code..."
+            cd /opt/ritam
+            git pull origin main
+
+            echo "→ Loading environment variables..."
+            if [ -f .env ]; then
+              export $(grep -v '^#' .env | xargs)
+            fi
+
+            echo "→ Running database migrations..."
+            docker compose -f docker-compose.prod.yml run --rm \
+              -e DATABASE_URL="postgresql://${DB_USER:-ritam}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-ritam_prod}" \
+              api npx prisma migrate deploy
+
+            echo "→ Rebuilding and restarting API..."
+            docker compose -f docker-compose.prod.yml up -d --build --no-deps api
+
+            echo "→ Waiting for API health check..."
+            sleep 10
+            for i in $(seq 1 12); do
+              if curl -sf http://localhost:4000/api/v1/health > /dev/null 2>&1; then
+                echo "✓ API is healthy"
+                break
+              fi
+              echo "  Attempt $i/12 — waiting..."
+              sleep 5
+            done
+
+            echo "→ Cleaning up old images..."
+            docker image prune -f
+
+            echo "✓ API deployment complete"
+
+  # ── Deploy Web to Vercel ──
+  deploy-web:
+    needs: quality
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || github.event.inputs.services == 'all' || github.event.inputs.services == 'web' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+          working-directory: apps/web
+          vercel-args: --prod
+
+  # ── Deploy POS to Vercel ──
+  deploy-pos:
+    needs: quality
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || github.event.inputs.services == 'all' || github.event.inputs.services == 'pos' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_POS }}
+          working-directory: apps/pos
+          vercel-args: --prod
+
+  # ── Deploy QR Ordering to Vercel ──
+  deploy-qr:
+    needs: quality
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' || github.event.inputs.services == 'all' || github.event.inputs.services == 'qr' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID_QR }}
+          working-directory: apps/qr-ordering
+          vercel-args: --prod
