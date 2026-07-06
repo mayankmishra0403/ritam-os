@@ -18,7 +18,7 @@ RUN prisma generate
 
 # Build API
 WORKDIR /app/apps/api
-RUN pnpm build
+RUN npx @nestjs/cli build
 
 # ── Production stage ──
 FROM node:22-alpine AS runner
