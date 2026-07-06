@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Ritam POS",
+    "slug": "ritam-pos",
+    "version": "1.0.0",
+    "orientation": "landscape",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#FF6B35"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ritam.pos"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FF6B35"
+      },
+      "package": "com.ritam.pos",
+      "versionCode": 1
+    },
+    "plugins": [
+      "expo-font",
+      "expo-splash-screen"
+    ]
+  }
+}
