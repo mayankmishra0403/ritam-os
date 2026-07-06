@@ -17,7 +17,7 @@ import {
   IsOptional,
   IsInt,
   Min,
-  IsUUID,
+  Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -35,7 +35,7 @@ class CreateCategoryDto {
   @Type(() => Number)
   sortOrder?: number;
 
-  @IsUUID()
+  @IsString()
   outletId!: string;
 }
 

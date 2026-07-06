@@ -1,4 +1,4 @@
-import { IsString, IsBoolean, IsOptional, IsEnum, IsUUID } from 'class-validator';
+import { IsString, IsBoolean, IsOptional, IsEnum } from 'class-validator';
 
 export enum AggregatorPlatformEnum {
   SWIGGY = 'SWIGGY',
@@ -6,7 +6,7 @@ export enum AggregatorPlatformEnum {
 }
 
 export class ConfigureAggregatorDto {
-  @IsUUID()
+  @IsString()
   outletId!: string;
 
   @IsEnum(AggregatorPlatformEnum)
@@ -35,7 +35,7 @@ export class ConfigureAggregatorDto {
 }
 
 export class UpdateAggregatorStatusDto {
-  @IsUUID()
+  @IsString()
   orderId!: string;
 
   @IsString()

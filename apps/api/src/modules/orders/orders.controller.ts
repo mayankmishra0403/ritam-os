@@ -17,7 +17,6 @@ import {
   IsNumber,
   IsArray,
   IsEnum,
-  IsUUID,
   Min,
   MinLength,
   ValidateNested,
@@ -25,7 +24,7 @@ import {
 import { Type } from 'class-transformer';
 
 class OrderItemDto {
-  @IsUUID()
+  @IsString()
   productId!: string;
 
   @IsNumber()
@@ -35,7 +34,7 @@ class OrderItemDto {
 
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsString({ each: true })
   modifierIds?: string[];
 
   @IsOptional()
@@ -44,11 +43,11 @@ class OrderItemDto {
 }
 
 class CreateOrderDto {
-  @IsUUID()
+  @IsString()
   outletId!: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   tableId?: string;
 
   @IsOptional()

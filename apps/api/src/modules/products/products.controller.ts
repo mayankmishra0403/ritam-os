@@ -20,7 +20,6 @@ import {
   IsBoolean,
   IsArray,
   Min,
-  IsUUID,
   MinLength,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
@@ -57,15 +56,15 @@ class CreateProductDto {
   @Type(() => Number)
   sortOrder?: number;
 
-  @IsUUID()
+  @IsString()
   outletId!: string;
 
-  @IsUUID()
+  @IsString()
   categoryId!: string;
 
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsString({ each: true })
   modifierIds?: string[];
 }
 
@@ -104,12 +103,12 @@ class UpdateProductDto {
   sortOrder?: number;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   categoryId?: string;
 
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsString({ each: true })
   modifierIds?: string[];
 }
 

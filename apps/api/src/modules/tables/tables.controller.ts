@@ -18,7 +18,6 @@ import {
   IsOptional,
   Min,
   IsEnum,
-  IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -36,7 +35,7 @@ class CreateTableDto {
   @IsString()
   section?: string;
 
-  @IsUUID()
+  @IsString()
   outletId!: string;
 }
 
