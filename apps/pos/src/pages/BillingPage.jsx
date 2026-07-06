@@ -24,6 +24,8 @@ import {
   User,
   UtensilsCrossed,
   Loader2,
+  MessageCircle,
+  Send,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { mockCategories, mockProducts, mockModifiers, mockTables } from '../data/mockData';
@@ -31,10 +33,12 @@ import usePosStore from '../store/posStore';
 import usePrinterStore from '../store/printerStore';
 import { generateInvoice, generateKOT } from '../services/invoiceGenerator';
 import { PrintEngine } from '../services/printEngine';
+import { WhatsAppService } from '../services/whatsappService';
 import InvoicePreview from '../components/pos/InvoicePreview';
+import VoiceButton from '../components/pos/VoiceButton';
 
 // ─── Payment Modal ───
-function PaymentModal({ onClose, onPaymentComplete }) {
+function PaymentModal({ onClose, onPaymentComplete, customerPhone }) {
   const {
     getGrandTotal,
     getSubtotal,
@@ -62,11 +66,14 @@ function PaymentModal({ onClose, onPaymentComplete }) {
   const tax = getTaxTotal(subtotal);
   const discountAmt = getDiscountAmount(subtotal);
   const change = Math.max(0, cashTendered - grandTotal);
+  const [whatsappLoading, setWhatsappLoading] = useState(false);
 
-  const handleComplete = () => {
+  const orderId = useMemo(() => Math.floor(Math.random() * 9999) + 1, []);
+
+  const handleComplete = async () => {
     // Build order data for invoice
     const orderData = {
-      orderId: Math.floor(Math.random() * 9999) + 1,
+      orderId,
       customerName,
       tableNumber: selectedTable?.tableNumber,
       waiterName: 'Rajesh',
@@ -85,6 +92,46 @@ function PaymentModal({ onClose, onPaymentComplete }) {
       changeDue: change,
       notes,
     };
+
+    // Fire-and-forget WhatsApp notifications if phone is provided
+    if (customerPhone && customerPhone.length >= 10) {
+      setWhatsappLoading(true);
+      try {
+        // Format item strings for WhatsApp
+        const itemStrings = cart.map((item) =>
+          `${item.name} ×${item.quantity}`
+        );
+
+        // Send order confirmation (non-blocking)
+        const confirmResult = await WhatsAppService.sendOrderConfirmation(
+          customerPhone,
+          orderId,
+          itemStrings,
+          grandTotal,
+        );
+
+        if (!confirmResult.success) {
+          console.warn('WhatsApp confirmation failed:', confirmResult.error);
+        }
+
+        // Send payment receipt (non-blocking)
+        const receiptResult = await WhatsAppService.sendReceipt(
+          customerPhone,
+          orderId,
+          grandTotal,
+          paymentMethod || 'CASH',
+        );
+
+        if (!receiptResult.success) {
+          console.warn('WhatsApp receipt failed:', receiptResult.error);
+        }
+      } catch (waError) {
+        // Don't crash the order flow — WhatsApp is best-effort
+        console.warn('WhatsApp notification error:', waError);
+      } finally {
+        setWhatsappLoading(false);
+      }
+    }
 
     // Callback to parent to show invoice
     onPaymentComplete?.(orderData);
@@ -320,6 +367,8 @@ export default function BillingPage() {
     selectedTable,
     customerName,
     setCustomerName,
+    customerPhone,
+    setCustomerPhone,
     discount,
     setDiscount,
     discountType,
@@ -349,6 +398,7 @@ export default function BillingPage() {
   const [invoiceData, setInvoiceData] = useState(null);
   const [kotLoading, setKotLoading] = useState(false);
   const [billLoading, setBillLoading] = useState(false);
+  const [whatsappLoading, setWhatsappLoading] = useState(false);
 
   // Set table from URL param if exists
   useEffect(() => {
@@ -466,6 +516,77 @@ export default function BillingPage() {
       setBillLoading(false);
     }
   }, [buildOrderData, getRestaurantInfo]);
+
+  // Handle Send Bill via WhatsApp
+  const handleSendBillWhatsApp = useCallback(async () => {
+    if (cart.length === 0) {
+      toast.error('Cart is empty. Add items first.');
+      return;
+    }
+    if (!customerPhone || customerPhone.length < 10) {
+      toast.error('Enter a valid WhatsApp number (e.g. 9198XXXXXXXX)');
+      return;
+    }
+
+    setWhatsappLoading(true);
+    try {
+      const orderId = Math.floor(Math.random() * 9999) + 1;
+      const upiId = 'ritam@paytm';
+      const result = await WhatsAppService.sendBill(
+        customerPhone,
+        orderId,
+        grandTotal,
+        upiId,
+      );
+
+      if (result.success) {
+        toast.success('Bill sent on WhatsApp!');
+      } else {
+        toast.error(`WhatsApp failed: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('WhatsApp bill error:', error);
+      toast.error('Failed to send bill on WhatsApp');
+    } finally {
+      setWhatsappLoading(false);
+    }
+  }, [cart, customerPhone, grandTotal]);
+
+  // ── Handle voice actions ──
+  const handleVoiceAction = useCallback((action) => {
+    switch (action) {
+      case 'bill':
+        handleGenerateBill();
+        break;
+      case 'payment':
+        setPaymentModalOpen(true);
+        break;
+      case 'cash':
+        setPaymentModalOpen(true);
+        usePosStore.getState().setPaymentMethod('CASH');
+        break;
+      case 'upi':
+        setPaymentModalOpen(true);
+        usePosStore.getState().setPaymentMethod('UPI');
+        break;
+      case 'card':
+        setPaymentModalOpen(true);
+        usePosStore.getState().setPaymentMethod('CARD');
+        break;
+      case 'print':
+        handlePrintKOT();
+        break;
+      case 'clear':
+        usePosStore.getState().clearCart();
+        toast.success('Cart cleared');
+        break;
+      case 'stop':
+        // just stop listening - handled by VoiceButton internally
+        break;
+      default:
+        break;
+    }
+  }, [handleGenerateBill, handlePrintKOT]);
 
   // Filter products
   const filteredProducts = useMemo(() => {
@@ -626,6 +747,16 @@ export default function BillingPage() {
                 />
               </div>
               <span className="text-sm text-[#6B7280] py-1.5">Waiter: Rajesh</span>
+            </div>
+            <div className="relative">
+              <Smartphone size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6B7280]" />
+              <input
+                type="tel"
+                placeholder="Customer WhatsApp (e.g. 9198XXXXXXXX)"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-[#F0E6DC] text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/30"
+              />
             </div>
           </div>
 
@@ -855,7 +986,7 @@ export default function BillingPage() {
               Collect Payment — ₹{grandTotal.toLocaleString('en-IN')}
             </button>
 
-            {/* Quick Print Shortcuts */}
+            {/* Quick Print Shortcuts & WhatsApp */}
             {cart.length > 0 && (
               <div className="flex gap-2 mt-1">
                 <button
@@ -875,11 +1006,36 @@ export default function BillingPage() {
                   <IndianRupee size={14} />
                   Pay & Print
                 </button>
+                <button
+                  onClick={handleSendBillWhatsApp}
+                  disabled={whatsappLoading || !customerPhone || customerPhone.length < 10}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-[#FFF8F0] text-xs text-[#6B7280] hover:bg-green-50 hover:text-green-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  title="Send bill on WhatsApp"
+                >
+                  {whatsappLoading ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <MessageCircle size={14} />
+                  )}
+                  {whatsappLoading ? 'Sending...' : 'WhatsApp Bill'}
+                </button>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* ── Voice Ordering Button ── */}
+      <VoiceButton
+        products={mockProducts}
+        modifiersList={mockModifiers}
+        onAddItem={(product, modifiers) => {
+          const mods = modifiers.length > 0 ? modifiers : [];
+          addToCart(product, mods);
+          toast.success(`${product.name} added via voice`);
+        }}
+        onAction={handleVoiceAction}
+      />
 
       {/* ── Modals ── */}
 
@@ -889,6 +1045,7 @@ export default function BillingPage() {
           <PaymentModal
             onClose={() => setPaymentModalOpen(false)}
             onPaymentComplete={handlePaymentComplete}
+            customerPhone={customerPhone}
           />
         )}
       </AnimatePresence>

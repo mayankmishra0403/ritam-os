@@ -11,6 +11,7 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { OutletsModule } from './modules/outlets/outlets.module';
 import { StaffModule } from './modules/staff/staff.module';
 import { AggregatorModule } from './modules/aggregator/aggregator.module';
+import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
 import { TenantGuard } from './common/guards/tenant.guard';
 
 @Module({
@@ -26,6 +27,7 @@ import { TenantGuard } from './common/guards/tenant.guard';
     OutletsModule,
     StaffModule,
     AggregatorModule,
+    WhatsappModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

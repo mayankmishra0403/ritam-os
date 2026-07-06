@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Store,
@@ -7,6 +7,7 @@ import {
   Users,
   Globe,
   Crown,
+  Mic,
   ChevronDown,
   ChevronUp,
   Plus,
@@ -26,11 +27,21 @@ import {
   Bluetooth,
   Usb,
   Cable,
+  MessageCircle,
+  Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { mockStaff } from '../data/mockData';
 import usePrinterStore from '../store/printerStore';
 import PrintDialog from '../components/pos/PrintDialog';
+import {
+  getVoiceSettings,
+  setVoiceSettings,
+  getSpeechRecognitionLang,
+  LANGUAGE_OPTIONS,
+} from '../services/voiceSettings';
+import { VoiceService } from '../services/voiceService';
+import { WhatsAppService } from '../services/whatsappService';
 
 // ─── Settings Section Card ───
 function SectionCard({ icon: Icon, title, defaultOpen = false, children }) {
@@ -271,6 +282,252 @@ function PrinterCard({ printer, onEdit, onDelete, onSetDefault, onTest }) {
   );
 }
 
+// ─── Voice Settings Content ───
+function VoiceSettingsContent() {
+  const [settings, setSettings] = useState(getVoiceSettings());
+  const [testText, setTestText] = useState('');
+  const [testStatus, setTestStatus] = useState(null); // 'idle' | 'listening' | 'success' | 'error'
+  const testVoiceRef = useRef(null);
+
+  // Update local state and persist
+  const updateSetting = (key, value) => {
+    const updated = setVoiceSettings({ [key]: value });
+    setSettings(updated);
+  };
+
+  // Handle sensitivity slider
+  const handleSensitivityChange = (e) => {
+    updateSetting('sensitivity', parseFloat(e.target.value));
+  };
+
+  // Handle language change
+  const handleLanguageChange = (e) => {
+    updateSetting('language', e.target.value);
+  };
+
+  // ── Test Voice Button ──
+  const handleTestVoice = () => {
+    if (testStatus === 'listening') {
+      // Stop listening
+      if (testVoiceRef.current) {
+        testVoiceRef.current.stop();
+      }
+      setTestStatus('idle');
+      return;
+    }
+
+    const voice = new VoiceService();
+    const recogLang = getSpeechRecognitionLang(settings.language || 'hi-IN');
+    const ok = voice.init(recogLang);
+    if (!ok) {
+      setTestStatus('error');
+      setTestText('Speech recognition not supported');
+      return;
+    }
+
+    setTestText('');
+    setTestStatus('listening');
+
+    voice.onResult = ({ final, interim }) => {
+      const text = final || interim;
+      setTestText(text);
+
+      if (final) {
+        setTestStatus('success');
+        voice.stop();
+        toast.success(`Heard: "${text}"`);
+      }
+    };
+
+    voice.onError = (error) => {
+      setTestStatus('error');
+      setTestText(`Error: ${error}`);
+      toast.error(`Voice test error: ${error}`);
+    };
+
+    voice.onEnd = () => {
+      if (testStatus === 'listening') {
+        setTestStatus('idle');
+      }
+    };
+
+    testVoiceRef.current = voice;
+    voice.start();
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (testVoiceRef.current) {
+        testVoiceRef.current.destroy();
+      }
+    };
+  }, []);
+
+  return (
+    <div className="space-y-5">
+      {/* Enable / Disable */}
+      <div className="flex items-center justify-between p-4 rounded-xl border border-[#F0E6DC]">
+        <div>
+          <p className="text-sm font-medium text-[#1A1A2E]">Enable Voice Ordering</p>
+          <p className="text-xs text-[#6B7280] mt-0.5">
+            Waiter can speak Hindi commands to add items
+          </p>
+        </div>
+        <button
+          onClick={() => updateSetting('enabled', !settings.enabled)}
+          className={`p-1 rounded-lg transition-colors ${
+            settings.enabled ? 'text-[#06D6A0]' : 'text-[#6B7280]'
+          }`}
+          aria-label="Toggle voice ordering"
+        >
+          {settings.enabled ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+        </button>
+      </div>
+
+      {/* Language selector */}
+      <div>
+        <label className="block text-sm font-medium text-[#6B7280] mb-2">
+          Recognition Language
+        </label>
+        <select
+          value={settings.language}
+          onChange={handleLanguageChange}
+          disabled={!settings.enabled}
+          className="w-full px-4 py-2.5 rounded-xl border border-[#F0E6DC] focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/30 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {LANGUAGE_OPTIONS.map((opt) => (
+            <option key={opt.value + opt.short} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-[#6B7280] mt-1.5">
+          Hindi works best for menu items with Hindi names. Hinglish mode
+          handles mixed Hindi-English speech.
+        </p>
+      </div>
+
+      {/* Sensitivity slider */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-medium text-[#6B7280]">
+            Matching Sensitivity
+          </label>
+          <span className="text-sm font-semibold text-[#FF6B35]">
+            {Math.round(settings.sensitivity * 100)}%
+          </span>
+        </div>
+        <input
+          type="range"
+          min="0.4"
+          max="0.95"
+          step="0.05"
+          value={settings.sensitivity}
+          onChange={handleSensitivityChange}
+          disabled={!settings.enabled}
+          className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FF6B35] disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            background: `linear-gradient(to right, #FF6B35 ${
+              (settings.sensitivity - 0.4) / 0.55 * 100
+            }%, #F0E6DC ${(settings.sensitivity - 0.4) / 0.55 * 100}%)`,
+          }}
+        />
+        <div className="flex justify-between text-xs text-[#6B7280] mt-1">
+          <span>Strict (40%)</span>
+          <span>Balanced (70%)</span>
+          <span>Loose (95%)</span>
+        </div>
+        <p className="text-xs text-[#6B7280] mt-1.5">
+          Higher sensitivity means tighter matching (fewer false positives,
+          but may miss variations). Lower sensitivity catches more accent
+          variations.
+        </p>
+      </div>
+
+      {/* Test Voice */}
+      <div className="p-4 rounded-xl border border-[#F0E6DC] bg-[#FFF8F0]">
+        <p className="text-sm font-medium text-[#1A1A2E] mb-2">
+          Test Voice Recognition
+        </p>
+        <p className="text-xs text-[#6B7280] mb-3">
+          Click "Try Speaking" and say a menu item like "पनीर टिक्का" or
+          "बटर चिकन"
+        </p>
+
+        <div className="flex items-center gap-2 mb-3">
+          <button
+            onClick={handleTestVoice}
+            disabled={!settings.enabled}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+              testStatus === 'listening'
+                ? 'bg-red-500 text-white voice-pulse'
+                : 'bg-[#FF6B35] text-white hover:bg-[#E85D04]'
+            }`}
+          >
+            {testStatus === 'listening' ? (
+              <>
+                <MicOff size={16} />
+                Stop Listening
+              </>
+            ) : (
+              <>
+                <Mic size={16} />
+                Try Speaking
+              </>
+            )}
+          </button>
+
+          {testStatus === 'listening' && (
+            <span className="flex items-center gap-1.5 text-sm text-[#6B7280]">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              Listening...
+            </span>
+          )}
+        </div>
+
+        {/* Transcript result */}
+        {(testText || testStatus === 'error') && (
+          <div
+            className={`px-4 py-3 rounded-xl text-sm ${
+              testStatus === 'error'
+                ? 'bg-red-50 text-red-600 border border-red-200'
+                : testStatus === 'success'
+                ? 'bg-green-50 text-green-700 border border-green-200'
+                : 'bg-white border border-[#F0E6DC] text-[#1A1A2E]'
+            }`}
+          >
+            <span className="font-medium">
+              {testStatus === 'error' ? 'Error: ' : testStatus === 'success' ? '✅ ' : '🎤 '}
+            </span>
+            {testText || 'No speech detected'}
+          </div>
+        )}
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="text-xs text-[#6B7280]">Try saying:</span>
+          {['पनीर टिक्का', 'बटर चिकन', 'दो नान', 'बिल', 'प्रिंट'].map((phrase) => (
+            <button
+              key={phrase}
+              onClick={() => setTestText(phrase)}
+              className="px-2.5 py-1 rounded-lg bg-white border border-[#F0E6DC] text-xs text-[#6B7280] hover:border-[#FF6B35]/30 hover:text-[#FF6B35] transition-colors"
+            >
+              {phrase}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Keyboard shortcut hint */}
+      <div className="p-3 rounded-xl bg-[#FFF8F0] border border-[#F0E6DC]">
+        <p className="text-xs font-medium text-[#6B7280]">
+          ⌨️ Keyboard Shortcut: <kbd className="px-1.5 py-0.5 rounded bg-white border border-[#F0E6DC] font-mono text-[11px]">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-white border border-[#F0E6DC] font-mono text-[11px]">Shift</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-white border border-[#F0E6DC] font-mono text-[11px]">V</kbd> to toggle voice
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main SettingsPage ───
 export default function SettingsPage() {
   const [showAddStaff, setShowAddStaff] = useState(false);
@@ -290,6 +547,31 @@ export default function SettingsPage() {
     setDefaultPrinter,
     togglePrinterActive,
   } = usePrinterStore();
+
+  // WhatsApp state
+  const [whatsappStatus, setWhatsappStatus] = useState({ connected: false, configured: false, sender: '' });
+  const [whatsappChecking, setWhatsappChecking] = useState(true);
+  const [whatsappTestPhone, setWhatsappTestPhone] = useState('');
+  const [whatsappTesting, setWhatsappTesting] = useState(false);
+  const [whatsappAutoConfirm, setWhatsappAutoConfirm] = useState(true);
+  const [whatsappAutoReady, setWhatsappAutoReady] = useState(true);
+  const [whatsappAutoReceipt, setWhatsappAutoReceipt] = useState(true);
+
+  // Check WhatsApp connection on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const status = await WhatsAppService.getStatus();
+        if (!cancelled) setWhatsappStatus(status);
+      } catch {
+        if (!cancelled) setWhatsappStatus({ connected: false, configured: false });
+      } finally {
+        if (!cancelled) setWhatsappChecking(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Outlet info state
   const [outletInfo, setOutletInfo] = useState({
@@ -611,6 +893,169 @@ export default function SettingsPage() {
                 />
               </div>
             )}
+          </div>
+        </SectionCard>
+
+        {/* ── Voice Settings ── */}
+        <SectionCard icon={Mic} title="Voice Settings (Hindi)">
+          <VoiceSettingsContent />
+        </SectionCard>
+
+        {/* ── WhatsApp Integration ── */}
+        <SectionCard icon={MessageCircle} title="WhatsApp Integration" defaultOpen={true}>
+          <div className="space-y-4">
+            {/* Connection Status */}
+            <div className="flex items-center justify-between p-4 rounded-xl border border-[#F0E6DC]">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  whatsappStatus.connected
+                    ? 'bg-[#06D6A0]/10'
+                    : 'bg-gray-100'
+                }`}>
+                  {whatsappChecking ? (
+                    <Loader2 size={20} className="animate-spin text-[#6B7280]" />
+                  ) : (
+                    <MessageCircle size={20} className={
+                      whatsappStatus.connected ? 'text-[#06D6A0]' : 'text-gray-400'
+                    } />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[#1A1A2E]">
+                    {whatsappChecking
+                      ? 'Checking connection...'
+                      : whatsappStatus.connected
+                        ? 'WhatsApp Connected'
+                        : 'WhatsApp Configured'}
+                  </p>
+                  <p className="text-xs text-[#6B7280]">
+                    {whatsappChecking
+                      ? ''
+                      : whatsappStatus.connected
+                        ? `Sender: ${whatsappStatus.sender || '919305804916'}`
+                        : 'MSG91 API configured — ready to send'}
+                  </p>
+                </div>
+              </div>
+              {!whatsappChecking && (
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  whatsappStatus.connected
+                    ? 'bg-[#06D6A0]/15 text-[#06D6A0]'
+                    : 'bg-[#FF6B35]/15 text-[#FF6B35]'
+                }`}>
+                  {whatsappStatus.connected ? 'Connected' : 'Configured'}
+                </span>
+              )}
+            </div>
+
+            {/* Test WhatsApp */}
+            <div className="p-4 rounded-xl bg-[#FFF8F0] border border-[#F0E6DC]">
+              <p className="text-sm font-medium text-[#1A1A2E] mb-2">Test WhatsApp</p>
+              <p className="text-xs text-[#6B7280] mb-3">
+                Send a test message to verify the WhatsApp integration is working.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="tel"
+                  value={whatsappTestPhone}
+                  onChange={(e) => setWhatsappTestPhone(e.target.value)}
+                  placeholder="WhatsApp number (e.g. 9198XXXXXXXX)"
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-[#F0E6DC] text-sm focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/30"
+                />
+                <button
+                  onClick={async () => {
+                    if (!whatsappTestPhone || whatsappTestPhone.length < 10) {
+                      toast.error('Enter a valid WhatsApp number with country code');
+                      return;
+                    }
+                    setWhatsappTesting(true);
+                    try {
+                      const result = await WhatsAppService.sendTest(whatsappTestPhone);
+                      if (result.success) {
+                        toast.success('Test message sent! Check your WhatsApp.');
+                      } else {
+                        toast.error(`Test failed: ${result.error || 'Unknown error'}`);
+                      }
+                    } catch (error) {
+                      toast.error(`Test failed: ${error.message}`);
+                    } finally {
+                      setWhatsappTesting(false);
+                    }
+                  }}
+                  disabled={whatsappTesting}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#06D6A0] text-white text-sm font-semibold hover:bg-[#05C090] disabled:opacity-50 disabled:cursor-not-allowed transition-all shrink-0"
+                >
+                  {whatsappTesting ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <TestTube size={16} />
+                  )}
+                  {whatsappTesting ? 'Sending...' : 'Send Test'}
+                </button>
+              </div>
+            </div>
+
+            {/* Auto-Send Toggles */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-[#1A1A2E]">Auto-Send Notifications</p>
+              <p className="text-xs text-[#6B7280] mb-2">
+                Automatically send WhatsApp messages when these events occur.
+              </p>
+              <div className="flex items-center justify-between p-3 rounded-xl border border-[#F0E6DC]">
+                <div className="flex items-center gap-3">
+                  <MessageCircle size={18} className="text-[#FF6B35]" />
+                  <div>
+                    <p className="text-sm font-medium text-[#1A1A2E]">Order Confirmation</p>
+                    <p className="text-xs text-[#6B7280]">Send when order is placed</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setWhatsappAutoConfirm(!whatsappAutoConfirm)}
+                  className={`p-1 rounded-lg transition-colors ${whatsappAutoConfirm ? 'text-[#06D6A0]' : 'text-[#6B7280]'}`}
+                >
+                  {whatsappAutoConfirm ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                </button>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-xl border border-[#F0E6DC]">
+                <div className="flex items-center gap-3">
+                  <MessageCircle size={18} className="text-[#FF6B35]" />
+                  <div>
+                    <p className="text-sm font-medium text-[#1A1A2E]">Ready Notification</p>
+                    <p className="text-xs text-[#6B7280]">Send when order is ready to serve</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setWhatsappAutoReady(!whatsappAutoReady)}
+                  className={`p-1 rounded-lg transition-colors ${whatsappAutoReady ? 'text-[#06D6A0]' : 'text-[#6B7280]'}`}
+                >
+                  {whatsappAutoReady ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                </button>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-xl border border-[#F0E6DC]">
+                <div className="flex items-center gap-3">
+                  <MessageCircle size={18} className="text-[#FF6B35]" />
+                  <div>
+                    <p className="text-sm font-medium text-[#1A1A2E]">Payment Receipt</p>
+                    <p className="text-xs text-[#6B7280]">Send after payment is completed</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setWhatsappAutoReceipt(!whatsappAutoReceipt)}
+                  className={`p-1 rounded-lg transition-colors ${whatsappAutoReceipt ? 'text-[#06D6A0]' : 'text-[#6B7280]'}`}
+                >
+                  {whatsappAutoReceipt ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Info note */}
+            <div className="p-3 rounded-xl bg-[#FFF8F0] border border-[#F0E6DC]">
+              <p className="text-xs text-[#6B7280]">
+                <strong>Note:</strong> WhatsApp messages are sent in Hindi + English mix.
+                Customers receive order confirmations, ready notifications, and payment receipts
+                on their registered WhatsApp number. MSG91 charges apply per message.
+              </p>
+            </div>
           </div>
         </SectionCard>
 

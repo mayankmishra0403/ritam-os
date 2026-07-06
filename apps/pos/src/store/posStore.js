@@ -5,6 +5,7 @@ const usePosStore = create((set) => ({
   cart: [],
   selectedTable: null,
   customerName: '',
+  customerPhone: '',
   discount: 0,
   discountType: 'percentage', // 'percentage' | 'fixed'
   notes: '',
@@ -89,6 +90,7 @@ const usePosStore = create((set) => ({
       discount: 0,
       discountType: 'percentage',
       customerName: '',
+      customerPhone: '',
       notes: '',
       paymentModalOpen: false,
       paymentMethod: null,
@@ -97,6 +99,7 @@ const usePosStore = create((set) => ({
 
   setSelectedTable: (table) => set({ selectedTable: table }),
   setCustomerName: (name) => set({ customerName: name }),
+  setCustomerPhone: (phone) => set({ customerPhone: phone }),
   setDiscount: (discount) => set({ discount }),
   setDiscountType: (type) => set({ discountType: type }),
   setNotes: (notes) => set({ notes: notes }),

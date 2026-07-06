@@ -171,3 +171,51 @@ input, select, textarea {
   .no-print { display: none !important; }
   body { background: white; }
 }
+
+/* ── Voice Pulse Animation ── */
+@keyframes voice-pulse {
+  0% {
+    box-shadow: 0 0 0 0 hsla(0, 100%, 60%, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 24px hsla(0, 100%, 60%, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 hsla(0, 100%, 60%, 0);
+  }
+}
+
+.voice-pulse {
+  animation: voice-pulse 1.5s ease-out infinite;
+}
+
+/* ── Range input styling for voice sensitivity slider ── */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #FF6B35;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #FF6B35;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}

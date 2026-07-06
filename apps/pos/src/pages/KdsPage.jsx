@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock,
@@ -8,8 +8,13 @@ import {
   Bell,
   BellOff,
   AlertTriangle,
+  MessageCircle,
+  Loader2,
+  Smartphone,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { mockKdsOrders } from '../data/mockData';
+import { WhatsAppService } from '../services/whatsappService';
 
 /**
  * KDS (Kitchen Display System) — Full-screen, auto-refreshing view
@@ -28,6 +33,7 @@ export default function KdsPage() {
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [alertEnabled, setAlertEnabled] = useState(true);
+  const [whatsappLoading, setWhatsappLoading] = useState(null); // order id being sent
   const prevOrderCount = useRef(0);
   const audioCtxRef = useRef(null);
 
@@ -85,6 +91,39 @@ export default function KdsPage() {
     }
     prevOrderCount.current = orders.length;
   }, [orders.length, alertEnabled, playNotificationSound]);
+
+  // Send WhatsApp order ready notification
+  const handleSendWhatsApp = useCallback(async (order) => {
+    // Use waiter phone from mock staff or prompt
+    const phone = window.prompt(
+      `Send "Order Ready" notification to WhatsApp number for Order #${order.orderNumber}:\n(Include country code, e.g. 9198XXXXXXXX)`,
+      '9198',
+    );
+    if (!phone || phone.length < 10) {
+      toast.error('Valid WhatsApp number required (e.g. 9198XXXXXXXX)');
+      return;
+    }
+
+    setWhatsappLoading(order.id);
+    try {
+      const result = await WhatsAppService.sendOrderReady(
+        phone,
+        parseInt(order.orderNumber, 10),
+        order.tableNumber,
+      );
+
+      if (result.success) {
+        toast.success(`Order #${order.orderNumber} notification sent on WhatsApp!`);
+      } else {
+        toast.error(`WhatsApp failed: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('WhatsApp notification error:', error);
+      toast.error('Failed to send WhatsApp notification');
+    } finally {
+      setWhatsappLoading(null);
+    }
+  }, []);
 
   // Filter orders
   const filteredOrders = orders.filter((o) => {
@@ -204,6 +243,8 @@ export default function KdsPage() {
           onServe={(order) => {
             setOrders((prev) => prev.filter((o) => o.id !== order.id));
           }}
+          whatsappLoading={whatsappLoading}
+          onSendWhatsApp={(order) => handleSendWhatsApp(order)}
         />
       </div>
     </div>
@@ -211,7 +252,7 @@ export default function KdsPage() {
 }
 
 // ─── KDS Column Component ─────────────────────────────────────────────────
-function KdsColumn({ title, icon, orders, color, emptyMsg, onAccept, onReady, onServe }) {
+function KdsColumn({ title, icon, orders, color, emptyMsg, onAccept, onReady, onServe, whatsappLoading, onSendWhatsApp }) {
   const borderColor =
     color === 'yellow'
       ? 'border-yellow-400/30'
@@ -347,6 +388,20 @@ function KdsColumn({ title, icon, orders, color, emptyMsg, onAccept, onReady, on
                     className="w-full bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg py-2.5 text-sm font-semibold transition active:scale-[0.98]"
                   >
                     Served
+                  </button>
+                )}
+                {onSendWhatsApp && (
+                  <button
+                    onClick={() => onSendWhatsApp(order)}
+                    disabled={whatsappLoading === order.id}
+                    className="w-full flex items-center justify-center gap-2 mt-2 bg-green-500/10 hover:bg-green-500/20 text-green-300 rounded-lg py-2 text-sm font-medium transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {whatsappLoading === order.id ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <MessageCircle size={14} />
+                    )}
+                    {whatsappLoading === order.id ? 'Sending...' : 'Notify on WhatsApp'}
                   </button>
                 )}
               </motion.div>
