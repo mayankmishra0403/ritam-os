@@ -1,0 +1,121 @@
+export const mockTables = Array.from({ length: 24 }, (_, i) => ({
+  id: `table-${i + 1}`,
+  tableNumber: i + 1,
+  capacity: [2, 4, 4, 6, 4, 4, 2, 2, 4, 4, 6, 4, 2, 4, 4, 6, 4, 2, 4, 4, 6, 4, 2, 4][i],
+  section: ['Hall', 'Hall', 'Hall', 'VIP', 'Hall', 'Hall', 'Balcony', 'Balcony', 'Hall', 'Hall', 'VIP', 'Hall', 'Hall', 'Hall', 'Hall', 'VIP', 'Hall', 'Balcony', 'Hall', 'Hall', 'VIP', 'Hall', 'Balcony', 'Hall'][i],
+  status: ['FREE', 'OCCUPIED', 'OCCUPIED', 'RESERVED', 'FREE', 'OCCUPIED', 'FREE', 'BILLING', 'FREE', 'OCCUPIED', 'FREE', 'FREE', 'OCCUPIED', 'OCCUPIED', 'FREE', 'FREE', 'FREE', 'OCCUPIED', 'FREE', 'FREE', 'FREE', 'FREE', 'RESERVED', 'FREE'][i],
+  orderTime: i < 6 ? '30 min ago' : null,
+  itemCount: i < 6 ? Math.floor(Math.random() * 8) + 2 : null,
+  total: i < 6 ? Math.floor(Math.random() * 1500) + 300 : null,
+}));
+
+export const mockCategories = [
+  { id: 'cat-1', name: 'Starters', nameHi: 'स्टार्टर्स', sortOrder: 1 },
+  { id: 'cat-2', name: 'Main Course', nameHi: 'मेन कोर्स', sortOrder: 2 },
+  { id: 'cat-3', name: 'Breads', nameHi: 'रोटी', sortOrder: 3 },
+  { id: 'cat-4', name: 'Rice & Biryani', nameHi: 'चावल और बिरयानी', sortOrder: 4 },
+  { id: 'cat-5', name: 'Dal & Curry', nameHi: 'दाल और करी', sortOrder: 5 },
+  { id: 'cat-6', name: 'Desserts', nameHi: 'मिठाई', sortOrder: 6 },
+  { id: 'cat-7', name: 'Beverages', nameHi: 'पेय पदार्थ', sortOrder: 7 },
+];
+
+export const mockProducts = [
+  { id: 'prod-1', categoryId: 'cat-1', name: 'Paneer Tikka', nameHi: 'पनीर टिक्का', price: 299, description: 'Marinated paneer grilled in tandoor' },
+  { id: 'prod-2', categoryId: 'cat-1', name: 'Chicken 65', nameHi: 'चिकन 65', price: 349, description: 'South Indian style fried chicken' },
+  { id: 'prod-3', categoryId: 'cat-1', name: 'Spring Rolls', nameHi: 'स्प्रिंग रोल्स', price: 249, description: 'Crispy vegetable spring rolls' },
+  { id: 'prod-4', categoryId: 'cat-1', name: 'Samosas (6 pcs)', nameHi: 'समोसे (6 टुकड़े)', price: 149, description: 'Crispy stuffed samosas' },
+  { id: 'prod-5', categoryId: 'cat-2', name: 'Butter Chicken', nameHi: 'बटर चिकन', price: 449, description: 'Creamy tomato-based chicken curry' },
+  { id: 'prod-6', categoryId: 'cat-2', name: 'Palak Paneer', nameHi: 'पालक पनीर', price: 329, description: 'Paneer in spinach gravy' },
+  { id: 'prod-7', categoryId: 'cat-2', name: 'Chicken Curry', nameHi: 'चिकन करी', price: 399, description: 'Traditional chicken curry' },
+  { id: 'prod-8', categoryId: 'cat-2', name: 'Dal Makhani', nameHi: 'दाल मखनी', price: 299, description: 'Slow cooked black lentils' },
+  { id: 'prod-9', categoryId: 'cat-3', name: 'Tandoori Roti', nameHi: 'तंदूरी रोटी', price: 39, description: 'Whole wheat tandoor bread' },
+  { id: 'prod-10', categoryId: 'cat-3', name: 'Naan', nameHi: 'नान', price: 49, description: 'White flour tandoor bread' },
+  { id: 'prod-11', categoryId: 'cat-3', name: 'Garlic Naan', nameHi: 'गार्लिक नान', price: 69, description: 'Naan with garlic butter' },
+  { id: 'prod-12', categoryId: 'cat-3', name: 'Butter Roti', nameHi: 'बटर रोटी', price: 49, description: 'Roti with butter' },
+  { id: 'prod-13', categoryId: 'cat-4', name: 'Steamed Rice', nameHi: 'सादा चावल', price: 149, description: 'Plain steamed rice' },
+  { id: 'prod-14', categoryId: 'cat-4', name: 'Chicken Biryani', nameHi: 'चिकन बिरयानी', price: 399, description: 'Hyderabadi chicken biryani' },
+  { id: 'prod-15', categoryId: 'cat-4', name: 'Veg Biryani', nameHi: 'वेज बिरयानी', price: 329, description: 'Mixed vegetable biryani' },
+  { id: 'prod-16', categoryId: 'cat-4', name: 'Jeera Rice', nameHi: 'जीरा राइस', price: 179, description: 'Cumin flavored rice' },
+  { id: 'prod-17', categoryId: 'cat-5', name: 'Dal Tadka', nameHi: 'दाल तड़का', price: 249, description: 'Yellow dal with tadka' },
+  { id: 'prod-18', categoryId: 'cat-5', name: 'Mixed Veg Curry', nameHi: 'मिक्स वेज', price: 279, description: 'Mixed vegetables in gravy' },
+  { id: 'prod-19', categoryId: 'cat-5', name: 'Chana Masala', nameHi: 'चना मसाला', price: 249, description: 'Spiced chickpea curry' },
+  { id: 'prod-20', categoryId: 'cat-6', name: 'Gulab Jamun', nameHi: 'गुलाब जामुन', price: 129, description: '3 pieces, milk solid dumplings in syrup' },
+  { id: 'prod-21', categoryId: 'cat-6', name: 'Ice Cream', nameHi: 'आइसक्रीम', price: 99, description: 'Vanilla, chocolate or strawberry' },
+  { id: 'prod-22', categoryId: 'cat-6', name: 'Kheer', nameHi: 'खीर', price: 149, description: 'Rice pudding with dry fruits' },
+  { id: 'prod-23', categoryId: 'cat-7', name: 'Masala Chai', nameHi: 'मसाला चाय', price: 49, description: 'Spiced Indian tea' },
+  { id: 'prod-24', categoryId: 'cat-7', name: 'Cold Drink', nameHi: 'कोल्ड ड्रिंक', price: 49, description: 'Coke, Sprite, Fanta' },
+  { id: 'prod-25', categoryId: 'cat-7', name: 'Lassi', nameHi: 'लस्सी', price: 99, description: 'Sweet or salty yogurt drink' },
+  { id: 'prod-26', categoryId: 'cat-7', name: 'Fresh Lime Soda', nameHi: 'नींबू सोडा', price: 79, description: 'Fresh lime with soda' },
+];
+
+export const mockModifiers = [
+  { id: 'mod-1', name: 'Extra Cheese', price: 30 },
+  { id: 'mod-2', name: 'Extra Butter', price: 20 },
+  { id: 'mod-3', name: 'Extra Spicy', price: 0 },
+  { id: 'mod-4', name: 'Less Oil', price: 0 },
+  { id: 'mod-5', name: 'Extra Gravy', price: 25 },
+];
+
+export const mockStaff = [
+  { id: 'staff-1', name: 'Rajesh', phone: '9876543210', role: 'MANAGER', pin: '1234' },
+  { id: 'staff-2', name: 'Suresh', phone: '9876543211', role: 'WAITER', pin: '2345' },
+  { id: 'staff-3', name: 'Amit', phone: '9876543212', role: 'CASHIER', pin: '3456' },
+  { id: 'staff-4', name: 'Vikram', phone: '9876543213', role: 'KITCHEN', pin: '4567' },
+];
+
+export const mockOrders = [
+  {
+    id: 'order-001',
+    tableNumber: 2,
+    items: [
+      { id: 'oi-1', name: 'Butter Chicken', quantity: 2, status: 'PREPARING' },
+      { id: 'oi-2', name: 'Garlic Naan', quantity: 4, status: 'PENDING' },
+      { id: 'oi-3', name: 'Dal Makhani', quantity: 1, status: 'SERVED' },
+    ],
+    status: 'ACTIVE',
+    createdAt: '2026-07-06T18:30:00',
+    total: 1256,
+  },
+  {
+    id: 'order-002',
+    tableNumber: 3,
+    items: [
+      { id: 'oi-4', name: 'Chicken Biryani', quantity: 2, status: 'PREPARING' },
+      { id: 'oi-5', name: 'Raita', quantity: 2, status: 'PENDING' },
+    ],
+    status: 'ACTIVE',
+    createdAt: '2026-07-06T19:00:00',
+    total: 898,
+  },
+  {
+    id: 'order-003',
+    tableNumber: 6,
+    items: [
+      { id: 'oi-6', name: 'Paneer Tikka', quantity: 1, status: 'SERVED' },
+      { id: 'oi-7', name: 'Masala Chai', quantity: 2, status: 'SERVED' },
+    ],
+    status: 'ACTIVE',
+    createdAt: '2026-07-06T18:15:00',
+    total: 397,
+  },
+  {
+    id: 'order-004',
+    tableNumber: 7,
+    items: [
+      { id: 'oi-8', name: 'Gulab Jamun', quantity: 3, status: 'SERVED' },
+    ],
+    status: 'COMPLETED',
+    createdAt: '2026-07-06T17:00:00',
+    total: 387,
+  },
+  {
+    id: 'order-005',
+    tableNumber: 10,
+    items: [
+      { id: 'oi-9', name: 'Chicken 65', quantity: 1, status: 'CANCELLED' },
+    ],
+    status: 'CANCELLED',
+    createdAt: '2026-07-06T16:30:00',
+    total: 0,
+  },
+];

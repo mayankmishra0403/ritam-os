@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+/* ── Design Tokens ── */
+:root {
+  --color-primary: #FF6B35;
+  --color-primary-hover: #E85D04;
+  --color-secondary: #E85D04;
+  --color-success: #06D6A0;
+  --color-warning: #FFD166;
+  --color-info: #118AB2;
+  --color-dark: #1A1A2E;
+  --color-bg: #FFF8F0;
+  --color-text: #1A1A2E;
+  --color-text-muted: #6B7280;
+  --color-border: #F0E6DC;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Playfair Display', Georgia, serif;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+}
+
+/* ── Base Styles ── */
+html {
+  font-size: 16px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  min-height: 100vh;
+}
+
+/* ── POS-specific overrides ── */
+/* Larger touch targets for tablet */
+button, 
+a, 
+[role="button"],
+input[type="submit"],
+input[type="button"] {
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+}
+
+/* Larger form controls for touch */
+input, select, textarea {
+  font-size: 16px; /* Prevents iOS zoom on focus */
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* Utility classes */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.glass-card-solid {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 0.938rem;
+  transition: all 0.15s ease;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.nav-item:hover {
+  background: rgba(255, 107, 53, 0.12);
+  color: #fff;
+}
+
+.nav-item.active {
+  background: rgba(255, 107, 53, 0.2);
+  color: #FF6B35;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.status-badge-free {
+  background: rgba(6, 214, 160, 0.15);
+  color: #06D6A0;
+}
+
+.status-badge-occupied {
+  background: rgba(255, 107, 53, 0.15);
+  color: #FF6B35;
+}
+
+.status-badge-billing {
+  background: rgba(255, 209, 102, 0.2);
+  color: #B8860B;
+}
+
+.status-badge-reserved {
+  background: rgba(17, 138, 178, 0.15);
+  color: #118AB2;
+}
+
+/* Price tag styling */
+.price-tag {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Hide scrollbar for cart items */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Focus ring for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid #FF6B35;
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+}
